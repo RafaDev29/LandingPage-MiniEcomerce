@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Ventas de Ropa</title>
+    <link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+    <!-- Cabecera con imagen -->
+    <header>
+        <img src="/logo/logo.png" alt="Logo del Sistema de Ventas" class="header-image">
+    </header>
+
+    <!-- Barra de navegación -->
+    <nav>
+        <h1>Sistema de Ventas</h1>
+        <button onclick="window.location.href='/views/login.html'">Iniciar sesión</button>
+    </nav>
+
+    <!-- Título de la lista de productos -->
+    <section id="product-section">
+        <h2>Lista de Productos</h2>
+        <div id="product-list"></div>
+    </section>
+
+    <script>
+        // Fetch para obtener los productos desde el backend
+        fetch('/products')
+            .then(response => response.json())
+            .then(data => {
+                const productList = document.getElementById('product-list');
+                if (data.data.length === 0) {
+                    productList.innerHTML = '<p>No hay productos disponibles.</p>';
+                } else {
+                    data.data.forEach(product => {
+                        const productDiv = document.createElement('div');
+                        productDiv.innerHTML = `
+                            <div class="product-card">
+                                <img src="${product.image_path}" alt="${product.name}" class="product-image">
+                                <h3>${product.name}</h3>
+                                <div class="price-tag">$${product.price}</div>
+                                <p class="quantity">Disponibles: ${product.quantity}</p>
+                                <input type="number" id="quantity-${product.id}" min="1" max="${product.quantity}" placeholder="Cantidad">
+                                <button onclick="sendWhatsApp('${product.name}', ${product.price}, ${product.id})">Solicitar</button>
+                            </div>
+                        `;
+                        productList.appendChild(productDiv);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar productos:', error);
+            });
+
+        // Función para enviar un mensaje por WhatsApp
+        const sendWhatsApp = (productName, productPrice, productId) => {
+            const quantityInput = document.getElementById(`quantity-${productId}`);
+            const quantity = quantityInput.value;
+
+            if (!quantity || quantity <= 0) {
+                alert('Por favor, selecciona una cantidad válida.');
+                return;
+            }
+
+            const message = `Hola, quiero solicitar el producto "${productName}" con un precio de $${productPrice} y una cantidad de ${quantity}.`;
+            const phone = '929831019'; // Número de WhatsApp al que se enviará el mensaje
+
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        };
+    </script>
+</body>
+</html>

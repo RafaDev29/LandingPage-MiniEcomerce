@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - CRUD de Productos</title>
+    <link rel="stylesheet" href="/css/admin.css">
+
+</head>
+<body>
+    <header>
+        <h1>Panel de Administración</h1>
+        <button id="logout-button">Cerrar sesión</button>
+    </header>
+
+    <!-- Formulario para agregar productos -->
+    <form id="add-product-form" enctype="multipart/form-data">
+        <input type="text" name="name" placeholder="Nombre" required>
+        <input type="number" name="price" placeholder="Precio" required>
+        <input type="number" name="quantity" placeholder="Cantidad" required>
+        <input type="file" name="image" accept="image/*" required>
+        <button type="submit">Agregar Producto</button>
+    </form>
+    <p id="message"></p>
+
+    <!-- Listado de productos -->
+    <div id="product-list">
+        <h2>Lista de Productos</h2>
+    </div>
+
+    <script>
+        // Verificar si el usuario está autenticado
+        const checkSession = async () => {
+            const response = await fetch('/auth/check-session');
+            const data = await response.json();
+
+            if (!data.status) {
+                alert('No tienes acceso. Serás redirigido al inicio.');
+                window.location.href = '/index.html';
+            }
+        };
+
+        // Función para cargar los productos
+        const loadProducts = async () => {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+
+            const response = await fetch('/products');
+            const data = await response.json();
+
+            if (data.status && data.data.length > 0) {
+                data.data.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.innerHTML = `
+                        <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px;">
+                            <img src="${product.image_path}" alt="${product.name}" style="width:100px;">
+                            <h3>${product.name}</h3>
+                            <p>Precio: $${product.price}</p>
+                            <p>Cantidad: ${product.quantity}</p>
+                            <button onclick="deleteProduct(${product.id})">Eliminar</button>
+                        </div>
+                    `;
+                    productList.appendChild(productDiv);
+                });
+            } else {
+                productList.innerHTML = '<p>No hay productos disponibles.</p>';
+            }
+        };
+
+        // Función para eliminar un producto
+        const deleteProduct = async (id) => {
+            const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este producto?');
+            if (!confirmDelete) return;
+
+            const response = await fetch(`/products/${id}`, { method: 'DELETE' });
+            const data = await response.json();
+
+            if (data.status) {
+                alert('Producto eliminado correctamente');
+                loadProducts();
+            } else {
+                alert(`Error al eliminar producto: ${data.message}`);
+            }
+        };
+
+        // Escuchar el formulario de agregar productos
+        document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const response = await fetch('/products/add', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            const messageEl = document.getElementById('message');
+            if (data.status) {
+                messageEl.textContent = 'Producto agregado correctamente';
+                e.target.reset();
+                loadProducts();
+            } else {
+                messageEl.textContent = `Error: ${data.message}`;
+            }
+        });
+
+        // Función para cerrar sesión
+        const logout = async () => {
+            const response = await fetch('/auth/logout', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.status) {
+                alert('Sesión cerrada correctamente');
+                window.location.href = '/';
+            } else {
+                alert('Error al cerrar sesión.');
+            }
+        };
+
+        // Escuchar el botón de cerrar sesión
+        document.getElementById('logout-button').addEventListener('click', logout);
+
+        // Verificar sesión al cargar la página
+        checkSession();
+
+        // Cargar los productos al cargar la página
+        loadProducts();
+    </script>
+</body>
+</html>
